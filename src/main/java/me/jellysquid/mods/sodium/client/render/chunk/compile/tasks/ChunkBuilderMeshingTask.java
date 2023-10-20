@@ -1,7 +1,9 @@
 package me.jellysquid.mods.sodium.client.render.chunk.compile.tasks;
 
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
+import me.jellysquid.mods.sodium.client.SodiumClientMod;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
+import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBufferSorter;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildContext;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
@@ -26,6 +28,7 @@ import net.minecraft.util.crash.CrashException;
 import net.minecraft.util.crash.CrashReport;
 import net.minecraft.util.crash.CrashReportSection;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.Map;
 
@@ -42,10 +45,17 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
 
     private final int buildTime;
 
+    private Vec3d camera = Vec3d.ZERO;
+
     public ChunkBuilderMeshingTask(RenderSection render, ChunkRenderContext renderContext, int time) {
         this.render = render;
         this.renderContext = renderContext;
         this.buildTime = time;
+    }
+
+    public ChunkBuilderMeshingTask withCameraPosition(Vec3d camera) {
+        this.camera = camera;
+        return this;
     }
 
     @Override
@@ -141,6 +151,14 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
             BuiltSectionMeshParts mesh = buffers.createMesh(pass);
 
             if (mesh != null) {
+                if(pass.isReverseOrder() && SodiumClientMod.options().performance.useTranslucentFaceSorting) {
+                    ChunkBufferSorter.sort(
+                            new ChunkBufferSorter.SortBuffer(mesh.getVertexData().getDirectBuffer(), buffers.getVertexType(), mesh.getVertexRanges()),
+                            (float)camera.x - minX,
+                            (float)camera.y - minY,
+                            (float)camera.z - minZ
+                    );
+                }
                 meshes.put(pass, mesh);
                 renderData.addRenderPass(pass);
             }
