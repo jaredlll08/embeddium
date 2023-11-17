@@ -374,6 +374,11 @@ public class SodiumWorldRenderer {
     // the volume of a section multiplied by the number of sections to be checked at most
     private static final double MAX_ENTITY_CHECK_VOLUME = 16 * 16 * 16 * 15;
 
+    private static boolean isInfiniteExtentsBox(Box box) {
+        return Double.isInfinite(box.minX) || Double.isInfinite(box.minY) || Double.isInfinite(box.minZ)
+                || Double.isInfinite(box.maxX) || Double.isInfinite(box.maxY) || Double.isInfinite(box.maxZ);
+    }
+
     /**
      * Returns whether or not the entity intersects with any visible chunks in the graph.
      * @return True if the entity is visible, otherwise false
@@ -389,6 +394,10 @@ public class SodiumWorldRenderer {
         }
 
         Box box = entity.getVisibilityBoundingBox();
+
+        if (isInfiniteExtentsBox(box)) {
+            return true; // treat entities with infinite boxes as visible
+        }
 
         // bail on very large entities to avoid checking many sections
         double entityVolume = (box.maxX - box.minX) * (box.maxY - box.minY) * (box.maxZ - box.minZ);
